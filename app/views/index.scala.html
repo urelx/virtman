@@ -1,7 +1,33 @@
-@(message: String)
-
-@main("Welcome to Play 2.1") {
-    
-    @play20.welcome(message)
-    
+@main(title="virtman: simple manager for libvirt") {
+	<h3>VM view</h3>
+	<table class="table table-condensed table-hover">
+	  <thead>
+	    <tr>
+	      <th>ID</th>
+	      <th>Name</th>
+	      <th>State</th>
+	      <th>Action</th>
+	    </tr>
+	  </thead>
+	  <tbody>
+	    <tr>
+	      <td colspan="4">no items.</td>
+	    </tr>
+	  </tbody>
+	</table>
+} {
+  <script type="text/javascript">
+	  function shutdownVM(id) {
+	    $.ajax({
+	      url: '/vm/' + id,
+	      type: 'POST',
+	      data: { state: 'shutdown', _method: 'PUT' }
+	      success: function(result) {
+	         // Do something with the result
+	      }
+	    });
+	    //$('#vmAction input[name=state]').val('shutdown');
+	    //$('#vmAction').submit(); 
+	  }
+  </script>
 }
