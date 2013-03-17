@@ -28,7 +28,8 @@
 			            <span class="text-success">running</span>
 			          </td>
 			          <td>
-			            <a class="btn btn-mini btn-warning" href="#">
+			            <a class="btn btn-mini btn-warning" href="#"
+			               onclick="shutdownVM(@vm.id); return false">
 			              <i class="icon-off"></i> Shutdown
 			            </a>
 			          </td>
@@ -38,7 +39,8 @@
 			            <span class="text-error">stopped</span>
 			          </td>
 			          <td>
-			            <a class="btn btn-mini btn-success" href="#">
+			            <a class="btn btn-mini btn-success" href="#"
+			               onclick="powerOnVM(@vm.id); return false">
 			              <i class="icon-off"></i> Power On
 			            </a>
 			          </td>
@@ -55,17 +57,19 @@
 	</table>
 } {
   <script type="text/javascript">
+    function updateState(vmID, stateTo) {
+		  jsRouter.controllers.Application.changeVMState(vmID).ajax({
+			  contentType: 'application/json',
+			  data: JSON.stringify({ state: stateTo }),
+			  success: function(data) { alert('success') },
+			  error: function() { alert('error') }
+		  });
+    }
 	  function shutdownVM(id) {
-	    $.ajax({
-	      url: '/vm/' + id,
-	      type: 'POST',
-	      data: { state: 'shutdown', _method: 'PUT' }
-	      success: function(result) {
-	         // Do something with the result
-	      }
-	    });
-	    //$('#vmAction input[name=state]').val('shutdown');
-	    //$('#vmAction').submit(); 
+		  updateState(id, 'stopped')
+	  }
+	  function powerOnVM(id) {
+		  updateState(id, 'running')
 	  }
   </script>
 }
