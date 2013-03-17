@@ -1,3 +1,6 @@
+@(vms: List[VM])
+@import VMState._
+
 @main(title="virtman: simple manager for libvirt") {
 	<h3>VM view</h3>
 	<table class="table table-condensed table-hover">
@@ -10,9 +13,44 @@
 	    </tr>
 	  </thead>
 	  <tbody>
-	    <tr>
-	      <td colspan="4">no items.</td>
-	    </tr>
+		  @if(vms.isEmpty) {
+		    <tr>
+		      <td colspan="4">no items.</td>
+		    </tr>
+		  } else {
+		    @vms.map { vm =>
+			    <tr>
+		        <td>@vm.id</td>
+		        <td>@vm.name</td>
+			      @vm.state match {
+			        case Running => {
+			          <td>
+			            <span class="text-success">running</span>
+			          </td>
+			          <td>
+			            <a class="btn btn-mini btn-warning" href="#">
+			              <i class="icon-off"></i> Shutdown
+			            </a>
+			          </td>
+			        }
+			        case Stopped => {
+			          <td>
+			            <span class="text-error">stopped</span>
+			          </td>
+			          <td>
+			            <a class="btn btn-mini btn-success" href="#">
+			              <i class="icon-off"></i> Power On
+			            </a>
+			          </td>
+			        }
+			        case other => {
+			          <td>@other.toString.toLowerCase</td>
+				        <td>-</td>
+			        }
+			      }
+		      </tr>
+			  }
+      }
 	  </tbody>
 	</table>
 } {
