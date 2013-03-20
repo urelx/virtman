@@ -2,74 +2,154 @@
 @import VMState._
 
 @main(title="virtman: simple manager for libvirt") {
-	<h3>VM view</h3>
-	<table class="table table-condensed table-hover">
-	  <thead>
-	    <tr>
-	      <th>ID</th>
-	      <th>Name</th>
-	      <th>State</th>
-	      <th>Action</th>
-	    </tr>
-	  </thead>
-	  <tbody>
-		  @if(vms.isEmpty) {
-		    <tr>
-		      <td colspan="4">no items.</td>
-		    </tr>
-		  } else {
-		    @vms.map { vm =>
-			    <tr>
-		        <td>@vm.id</td>
-		        <td>@vm.name</td>
-			      @vm.state match {
-			        case Running => {
-			          <td>
-			            <span class="text-success">running</span>
-			          </td>
-			          <td>
-			            <a class="btn btn-mini btn-warning" href="#"
-			               onclick="shutdownVM(@vm.id); return false">
-			              <i class="icon-off"></i> Shutdown
-			            </a>
-			          </td>
-			        }
-			        case Stopped => {
-			          <td>
-			            <span class="text-error">stopped</span>
-			          </td>
-			          <td>
-			            <a class="btn btn-mini btn-success" href="#"
-			               onclick="powerOnVM(@vm.id); return false">
-			              <i class="icon-off"></i> Power On
-			            </a>
-			          </td>
-			        }
-			        case other => {
-			          <td>@other.toString.toLowerCase</td>
-				        <td>-</td>
-			        }
-			      }
-		      </tr>
-			  }
+  <div class="alert alert-success hide">
+    <a class="close" href="#">&times;</a>
+    <strong>Success:</strong> <span class="alert-msg"></span>
+  </div>
+  <div class="alert alert-error hide">
+    <a class="close" href="#">&times;</a>
+    <strong>Error:</strong> <span class="alert-msg"></span>
+  </div>
+  <h2 style="font-size: 150%">VM view</h2>
+  <table class="table table-condensed table-hover">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>State</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      @if(vms.isEmpty) {
+        <tr>
+          <td colspan="4">no items.</td>
+        </tr>
+      } else {
+        @vms.map { vm =>
+          <tr class="vm">
+            <td class="vm-id">@vm.id</td>
+            <td class="vm-name">@vm.name</td>
+            @vm.state match {
+              case Running => {
+                <td>
+                  <span class="text-success">running</span>
+                </td>
+                <td>
+                  <button class="btn btn-mini btn-warning shutdown">
+                    <i class="icon-off"></i> Shutdown
+                  </button>
+                </td>
+              }
+              case Stopped => {
+                <td>
+                  <span class="text-error">stopped</span>
+                </td>
+                <td>
+                  <button class="btn btn-mini btn-success poweron">
+                    <i class="icon-off"></i> Power On
+                  </button>
+                </td>
+              }
+              case other => {
+                <td>@other.toString.toLowerCase</td>
+                <td>-</td>
+              }
+            }
+          </tr>
+        }
       }
-	  </tbody>
-	</table>
+    </tbody>
+  </table>
+  <div id="confirmModal" class="modal hide fade">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+      <h3>Action Confirm</h3>
+    </div>
+    <div class="modal-body">
+      <ul>
+        <li>hoge</li>
+      </ul>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+      <button class="btn btn-primary" autocomplete="off"
+              data-loading-text="Processing...">Shutdown</button>
+    </div>
+  </div>
 } {
   <script type="text/javascript">
-    function updateState(vmID, stateTo) {
-		  jsRouter.controllers.Application.changeVMState(vmID).ajax({
-			  contentType: 'application/json',
-			  data: JSON.stringify({ state: stateTo }),
-			  success: function(data) { alert('success') },
-			  error: function() { alert('error') }
-		  });
+    function changeVMState(vmID, stateTo, completeHandler) {
+      jsRouter.controllers.Application.changeVMState(vmID).ajax({
+        contentType: 'application/json',
+        data: JSON.stringify({ state: stateTo }),
+        success: function(data) { showAlert('success', 'VM state has changed.') },
+        error: function() { showAlert('error', 'failed to change VM state.') },
+        complete: completeHandler
+      })
     }
-	  function shutdownVM(id) {
-		  updateState(id, 'stopped')
-	  }
-	  function powerOnVM(id) {
-		  updateState(id, 'running')
-	  }
+    
+    function callConfirmModal(headerText, bodyHTML, submitText, submitHandler) {
+    	$('#confirmModal .modal-header h3').text(headerText)
+    	$('#confirmModal .modal-body').html(bodyHTML)
+    	var submit = $('#confirmModal .btn-primary')
+    	submit.button('reset')
+    	submit.text(submitText)
+    	submit.off('click')
+      submit.on('click', function() {
+    	  $(this).button('loading')
+    	  submitHandler()
+      })
+    	$('#confirmModal').modal('show')
+    }
+    
+    function findVMAttr(vmObj) {
+    	return {
+    		id: vmObj.find('.vm-id').text(),
+    		name: vmObj.find('.vm-name').text()}
+    }
+    
+    function showAlert(type, msg) {
+    	var obj = $('.alert-' + type)
+    	obj.find('.alert-msg').text(msg)
+    	obj.show()
+    }
+      
+    $(function() {
+    	$('.table .shutdown').on('click', function() {
+    		var vmAttr = findVMAttr($(this).closest('.vm'))
+    		var vmUL   = $('<ul/>').append('<li>' + vmAttr['name'] + '</li>')
+    		var bodyHTML = $('<div/>')
+    		  .append('<p>Are you sure you want to shutdown this VM?</p>')
+    		  .append(vmUL)
+    	  callConfirmModal('Shutdown VM',
+    			bodyHTML.html(),
+    		  'Yes, Shutdown', function() {
+    		    changeVMState(vmAttr['id'], 'stopped', function() {
+            	$('#confirmModal').modal('hide')
+    		    })
+    			})
+    	})
+    	
+    	$('.table .poweron').on('click', function() {
+    		var vmAttr = findVMAttr($(this).closest('.vm'))
+    		var vmUL   = $('<ul/>').append('<li>' + vmAttr['name'] + '</li>')
+    		var bodyHTML = $('<div/>')
+    		  .append('<p>Are you sure you want to start this VM?</p>')
+    		  .append(vmUL)
+    	  callConfirmModal('Power On VM',
+    			bodyHTML.html(),
+    		  'Yes, Start', function() {
+    		    $(this).button('loading')
+    		    changeVMState(vmAttr['id'], 'running', function() {
+            	$('#confirmModal').modal('hide')
+    		    })
+    	    })
+    	})
+    	
+    	$('.alert .close').on('click', function() {
+    		$(this).closest('.alert').hide()    		
+    	})
+    })
   </script>
 }
